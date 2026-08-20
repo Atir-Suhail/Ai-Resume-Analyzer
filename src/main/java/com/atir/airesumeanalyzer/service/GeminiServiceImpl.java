@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import com.atir.airesumeanalyzer.dto.AIAnalysisResponseDTO;
+import com.atir.airesumeanalyzer.dto.JobMatchResponseDTO;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -126,5 +127,75 @@ System.out.println("========================");
                 .replace("\r", "\\r")
                 .replace("\t", "\\t")
                 + "\"";
+    }
+    @Override
+    public JobMatchResponseDTO analyzeJobMatch(
+            String resumeText,
+            String jobDescriptionText) {
+
+        String prompt = """
+            Compare Resume and Job Description.
+
+            Return ONLY valid JSON.
+
+            {
+              "matchPercentage": 0,
+              "missingSkills": "",
+              "atsFeedback": "",
+              "recommendations": ""
+            }
+
+            Resume:
+            """ + resumeText +
+
+            """
+
+            Job Description:
+            """ + jobDescriptionText;
+
+        String requestBody = """
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": %s
+                    }
+                  ]
+                }
+              ]
+            }
+            """.formatted(toJsonString(prompt));
+
+        try {
+
+            String rawResponse = restClient.post()
+                    .uri(apiUrl + "?key=" + apiKey)
+                    .header("Content-Type", "application/json")
+                    .body(requestBody)
+                    .retrieve()
+                    .body(String.class);
+
+            JsonNode rootNode =
+                    objectMapper.readTree(rawResponse);
+
+            String aiText = rootNode
+                    .path("candidates")
+                    .get(0)
+                    .path("content")
+                    .path("parts")
+                    .get(0)
+                    .path("text")
+                    .asText();
+
+            return objectMapper.readValue(
+                    aiText,
+                    JobMatchResponseDTO.class);
+
+        } catch (Exception e) {
+
+            throw new RuntimeException(
+                    "Failed to analyze job match");
+        }
     }
 }

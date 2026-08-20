@@ -10,4 +10,5 @@ public interface ResumeAnalysisRepository
         extends JpaRepository<ResumeAnalysis, Long> {
 
     Optional<ResumeAnalysis> findByResumeId(Long resumeId);
+    long countByResumeUserId(Long userId);
 }

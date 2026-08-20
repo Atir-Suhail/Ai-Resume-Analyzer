@@ -48,7 +48,7 @@ public class UserServiceImpl implements UserService {
         user.setIsActive(true);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
-
+        user.setFreeAnalysisCount(10);
         userRepository.save(user);
 
         return new ApiResponse(true, "User Registered Successfully");

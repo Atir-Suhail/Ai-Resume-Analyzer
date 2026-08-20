@@ -3,12 +3,14 @@ package com.atir.airesumeanalyzer.service;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.atir.airesumeanalyzer.dto.ApiResponse;
+import com.atir.airesumeanalyzer.dto.ResumeResponseDTO;
 import com.atir.airesumeanalyzer.entity.Resume;
 import com.atir.airesumeanalyzer.entity.User;
 import com.atir.airesumeanalyzer.repository.ResumeRepository;
@@ -34,16 +36,14 @@ public class ResumeServiceImpl implements ResumeService {
     @Override
     public ApiResponse uploadResume(MultipartFile file, Long userId) {
 
-        // 1. User find karo
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // 2. Empty file validation
         if (file.isEmpty()) {
-            return new ApiResponse(false, "Please select a file to upload.");
+            return new ApiResponse(false,
+                    "Please select a file to upload.");
         }
 
-        // 3. File type validation
         String contentType = file.getContentType();
 
         if (!"application/pdf".equals(contentType)
@@ -55,7 +55,6 @@ public class ResumeServiceImpl implements ResumeService {
                     "Only PDF and DOCX files are allowed.");
         }
 
-        // 4. File size validation - Maximum 5 MB
         long maxSize = 5 * 1024 * 1024;
 
         if (file.getSize() > maxSize) {
@@ -64,7 +63,6 @@ public class ResumeServiceImpl implements ResumeService {
                     "File size should not exceed 5 MB.");
         }
 
-        // 5. Upload directory
         String uploadDir = System.getProperty("user.dir")
                 + File.separator
                 + "uploads";
@@ -77,43 +75,27 @@ public class ResumeServiceImpl implements ResumeService {
                     "Unable to create upload directory.");
         }
 
-        // 6. Unique file name generate karo
-        String uniqueFileName = UUID.randomUUID()
-                + "_"
-                + file.getOriginalFilename();
+        String uniqueFileName =
+                UUID.randomUUID() + "_" + file.getOriginalFilename();
 
-        String filePath = uploadDir
-                + File.separator
-                + uniqueFileName;
+        String filePath =
+                uploadDir + File.separator + uniqueFileName;
 
-        // 7. File uploads folder me save karo
         try {
-
             file.transferTo(new File(filePath));
-
         } catch (IOException e) {
-
             e.printStackTrace();
-
             return new ApiResponse(
                     false,
                     "Failed to upload resume.");
         }
 
-     // 8. Resume se text extract karo
         String extractedText;
+
         try {
 
-        	 extractedText =
-        	        resumeParserService.extractText(filePath, contentType);
-
-            System.out.println(
-                    "===== EXTRACTED RESUME TEXT =====");
-
-            System.out.println(extractedText);
-
-            System.out.println(
-                    "=================================");
+            extractedText = resumeParserService
+                    .extractText(filePath, contentType);
 
         } catch (Exception e) {
 
@@ -121,10 +103,10 @@ public class ResumeServiceImpl implements ResumeService {
 
             return new ApiResponse(
                     false,
-                    "Failed to extract text: " + e.getMessage());
+                    "Failed to extract text : "
+                            + e.getMessage());
         }
 
-        // 9. Resume metadata database me save karo
         Resume resume = new Resume();
 
         resume.setFileName(file.getOriginalFilename());
@@ -137,9 +119,64 @@ public class ResumeServiceImpl implements ResumeService {
 
         resumeRepository.save(resume);
 
-        // 10. Success response
         return new ApiResponse(
                 true,
                 "Resume uploaded successfully.");
+    }
+
+    @Override
+    public List<ResumeResponseDTO> getAllResumes() {
+
+        return resumeRepository.findAll()
+                .stream()
+                .map(this::convertToDTO)
+                .toList();
+    }
+
+    @Override
+    public List<ResumeResponseDTO> getResumesByUserId(Long userId) {
+
+        return resumeRepository.findByUserId(userId)
+                .stream()
+                .map(this::convertToDTO)
+                .toList();
+    }
+
+    @Override
+    public Resume getResumeById(Long resumeId) {
+
+        return resumeRepository.findById(resumeId)
+                .orElseThrow(() ->
+                        new RuntimeException("Resume not found"));
+    }
+
+    @Override
+    public void deleteResume(Long resumeId) {
+
+        Resume resume = resumeRepository.findById(resumeId)
+                .orElseThrow(() ->
+                        new RuntimeException("Resume not found"));
+
+        resumeRepository.delete(resume);
+    }
+
+    private ResumeResponseDTO convertToDTO(Resume resume) {
+
+        ResumeResponseDTO dto = new ResumeResponseDTO();
+
+        dto.setId(resume.getId());
+        dto.setFileName(resume.getFileName());
+        dto.setFileType(resume.getFileType());
+        dto.setStatus(resume.getStatus());
+        dto.setUploadedAt(resume.getUploadedAt());
+
+        dto.setUserId(resume.getUser().getId());
+
+        dto.setUserName(
+                resume.getUser().getFirstName()
+                        + " "
+                        + resume.getUser().getLastName());
+
+        return dto;
     }
 }

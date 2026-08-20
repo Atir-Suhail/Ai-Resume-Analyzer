@@ -29,6 +29,8 @@ import jakarta.persistence.Table;
  private Boolean isActive;
  private LocalDateTime createdAt;
  private LocalDateTime updatedAt;
+ @Column
+ private Integer freeAnalysisCount = 10;
  public User() {
 	 
  }
@@ -85,5 +87,11 @@ import jakarta.persistence.Table;
  }
  public void setUpdatedAt(LocalDateTime updatedAt) {
 	this.updatedAt = updatedAt;
+ }public Integer getFreeAnalysisCount() {
+	    return freeAnalysisCount;
+ }
+
+ public void setFreeAnalysisCount(Integer freeAnalysisCount) {
+     this.freeAnalysisCount = freeAnalysisCount;
  }
 }

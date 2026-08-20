@@ -1,7 +1,7 @@
 package com.atir.airesumeanalyzer.entity;
 
 import java.time.LocalDateTime;
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 
 @Entity
@@ -29,8 +29,7 @@ public class Resume {
 
     @Column(name = "extracted_text", columnDefinition = "TEXT")
     private String extractedText;
-
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
